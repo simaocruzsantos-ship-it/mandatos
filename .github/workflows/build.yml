@@ -1,30 +1,56 @@
 
-name: Prepare Mandatos Build
+name: Build Mandatos G3A
 
 on:
   workflow_dispatch:
-
-permissions:
-  contents: read
+  push:
+    branches: [main, master]
 
 jobs:
-  inspect:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-22.04
+
     steps:
-      - name: Checkout
+      - name: Obter o projeto
         uses: actions/checkout@v4
 
-      - name: Check project files
+      - name: Instalar dependências do sistema
         run: |
-          echo "Checking Mandatos project..."
+          sudo apt-get update
+          sudo apt-get install -y \
+            git cmake make ninja-build \
+            python3 python3-pip python3-pil \
+            libpng-dev libusb-1.0-0-dev \
+            build-essential curl wget
+
+      - name: Obter fxSDK
+        run: |
+          git clone --depth 1 \
+            https://github.com/lephe/Fx-SDK.git /tmp/fxsdk
+          echo "O código-fonte do fxSDK foi obtido."
+          echo "É necessária a instalação do compilador SH e das bibliotecas Casio antes de compilar."
+
+      - name: Verificar os ficheiros do projeto
+        run: |
           test -f CMakeLists.txt
           test -f src/main.c
           test -f src/seats.c
           test -f assets-cg/icon-uns.png
           test -f assets-cg/icon-sel.png
-          echo "Project files are present."
 
-      - name: Check GitHub-only dependency sources
+      - name: Compilar Mandatos
         run: |
-          git ls-remote https://github.com/lephe/Fx-SDK.git HEAD
-          git ls-remote https://github.com/Insoft-UK/gint.git HEAD
+          if ! command -v fxsdk >/dev/null 2>&1; then
+            echo "::error::O fxSDK e o toolchain Casio ainda não estão instalados."
+            echo "É necessário instalar sh-elf-gcc, OpenLibm, fxlibc, fxSDK e gint."
+            exit 1
+          fi
+          fxsdk build-cg
+
+      - name: Publicar Mandatos.g3a
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mandatos-G3A
+          path: "**/Mandatos.g3a"
+          if-no-files-found: error
