@@ -1,52 +1,30 @@
 
-name: Build Mandatos G3A
+name: Prepare Mandatos Build
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  inspect:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Download Mandatos
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install build dependencies
+      - name: Check project files
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            git cmake make gcc g++ \
-            python3 python3-pip python3-venv \
-            libpng-dev libusb-1.0-0-dev \
-            pkg-config build-essential
+          echo "Checking Mandatos project..."
+          test -f CMakeLists.txt
+          test -f src/main.c
+          test -f src/seats.c
+          test -f assets-cg/icon-uns.png
+          test -f assets-cg/icon-sel.png
+          echo "Project files are present."
 
-      - name: Check calculator toolchain
+      - name: Check GitHub-only dependency sources
         run: |
-          if ! command -v fxsdk >/dev/null 2>&1; then
-            echo "::error::fxSDK is not installed."
-            echo "The SuperH compiler, fxSDK and gint must be installed first."
-            exit 1
-          fi
-
-          if ! command -v sh-elf-gcc >/dev/null 2>&1; then
-            echo "::error::SuperH cross-compiler is missing."
-            exit 1
-          fi
-
-      - name: Build Mandatos
-        run: fxsdk build-cg
-
-      - name: Upload G3A
-        uses: actions/upload-artifact@v4
-        with:
-          name: Mandatos-G3A
-          path: |
-            **/*.g3a
-          if-no-files-found: error
-          retention-days: 14
+          git ls-remote https://github.com/lephe/Fx-SDK.git HEAD
+          git ls-remote https://github.com/Insoft-UK/gint.git HEAD
