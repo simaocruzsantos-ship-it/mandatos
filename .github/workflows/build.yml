@@ -1,10 +1,8 @@
 
-name: Build Mandatos
+name: Build Mandatos G3A
 
 on:
   push:
-    branches: [main]
-  pull_request:
     branches: [main]
   workflow_dispatch:
 
@@ -12,19 +10,43 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    name: Test logic
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Download Mandatos
         uses: actions/checkout@v4
 
-      - name: Install GCC
-        run: sudo apt-get update && sudo apt-get install -y gcc
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git cmake make gcc g++ \
+            python3 python3-pip python3-venv \
+            libpng-dev libusb-1.0-0-dev \
+            pkg-config build-essential
 
-      - name: Compile tests
-        run: gcc -Wall -Wextra -Isrc test/t.c src/seats.c -o t_seats
+      - name: Check calculator toolchain
+        run: |
+          if ! command -v fxsdk >/dev/null 2>&1; then
+            echo "::error::fxSDK is not installed."
+            echo "The SuperH compiler, fxSDK and gint must be installed first."
+            exit 1
+          fi
 
-      - name: Run tests
-        run: ./t_seats
+          if ! command -v sh-elf-gcc >/dev/null 2>&1; then
+            echo "::error::SuperH cross-compiler is missing."
+            exit 1
+          fi
+
+      - name: Build Mandatos
+        run: fxsdk build-cg
+
+      - name: Upload G3A
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mandatos-G3A
+          path: |
+            **/*.g3a
+          if-no-files-found: error
+          retention-days: 14
