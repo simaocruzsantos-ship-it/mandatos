@@ -28,7 +28,9 @@ jobs:
       - name: Instalar GiteaPC
         if: steps.cache-tc.outputs.cache-hit != 'true'
         run: |
-          pipx install giteapc
+          git clone https://gitea.planet-casio.fr/Lephenixnoir/GiteaPC.git /tmp/GiteaPC
+          cd /tmp/GiteaPC
+          ./giteapc.py install Lephenixnoir/GiteaPC
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Compilador sh-elf-gcc (demora, so na primeira vez)
